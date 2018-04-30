@@ -2,7 +2,7 @@
 
 # Tensorflow.js Onnx Runner
 
-Run pretrained Onnx models in the browser with GPU support via the wonderful [Tensorflow.js][tfjs] library.
+Run and finetune pretrained Onnx models in the browser with GPU support via the wonderful [Tensorflow.js][tfjs] library.
 
 ## Usage
 
@@ -14,7 +14,7 @@ You can use this as standalone es5 bundle like this:
 <script src="https://unpkg.com/tfjs-onnx"></script>
 ```
 
-Then loading model is a simple as referencing the path to the caffemodel and prototxt files.
+Then, loading model is a simple as referencing the path to the `model.onnx` file.
 
 Here is an example of loading GoogLeNet:
 
