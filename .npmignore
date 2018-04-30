@@ -1,0 +1,10 @@
+src/
+test/
+coverage/
+demos/
+docs/
+bower_components/
+node_modules/
+bower.json
+karma.conf.js
+dist/src/**/*.js

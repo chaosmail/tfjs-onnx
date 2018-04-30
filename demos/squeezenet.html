@@ -1,0 +1,40 @@
+<script src="../dist/browser/tfjs-onnx.js"></script>
+
+<img id="img"></img>
+<div id="result"></div>
+
+<script>
+  function convertImg(img, shape) {
+    const pixels = tf.fromPixels(img);
+    const data = tf.image.resizeBilinear(pixels, shape);
+    return data.expandDims().cast('float32');
+  }
+
+  (async function(){
+    // Load the image
+    const imgElem = document.getElementById('img');
+    const imgUrl = 'img/cat.jpg';
+    const img = await tf.onnx.util.loadImageData(imgUrl);
+
+    // Load the model
+    const modelUrl = 'models/squeezenet-onnx/model.onnx'
+    const model = await tf.onnx.loadModel(modelUrl);
+    console.debug(model);
+
+    const predictedClass = tf.tidy(() => {
+
+      // Load the pixel and scale to model input
+      const data = convertImg(img, [224, 224]);
+      console.log(data.print());
+
+      // Perform the forward pass
+      const predictions = model.predict(data);
+      console.debug(predictions);
+
+      return predictions.as1D().argMax();
+    });
+
+    const classId = (await predictedClass.data())[0];
+    console.log(classId);
+  })();
+</script>

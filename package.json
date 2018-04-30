@@ -1,0 +1,47 @@
+{
+  "name": "tfjs-onnx",
+  "version": "0.1.0",
+  "description": "Run pretrained Onnx models in Tensorflow.js",
+  "main": "dist/node/index.js",
+  "types": "dist/node/index.d.ts",
+  "unpkg": "dist/browser/tfjs-onnx.min.js",
+  "dependencies": {
+    "onnx-proto": "^3.1.1",
+    "@tensorflow/tfjs": "^0.10.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chaosmail/tfjs-onnx.git"
+  },
+  "devDependencies": {
+    "@types/jasmine": "^2.8.4",
+    "@types/node": "^9.3.0",
+    "browserify": "^14.5.0",
+    "clang-format": "^1.2.2",
+    "del": "^3.0.0",
+    "gulp": "^3.9.1",
+    "gulp-rename": "^1.2.2",
+    "gulp-typescript": "^3.2.3",
+    "http-server": "^0.10.0",
+    "jasmine-co": "^1.2.2",
+    "jasmine-core": "~2.6.4",
+    "karma": "^1.7.0",
+    "karma-chrome-launcher": "^2.2.0",
+    "karma-firefox-launcher": "^1.0.1",
+    "karma-jasmine": "~1.1.0",
+    "karma-typescript": "^3.0.8",
+    "protobufjs": "~6.8.0",
+    "run-sequence": "^2.2.0",
+    "tinyify": "^2.4.0",
+    "tsify": "^3.0.3",
+    "tslint": "~5.6.0",
+    "typescript": "^2.6.2",
+    "vinyl-source-stream": "^1.1.0"
+  },
+  "scripts": {
+    "build": "gulp build",
+    "serve": "http-server",
+    "publish-npm": "npm install && gulp build && npm publish"
+  },
+  "license": "Apache-2.0"
+}
