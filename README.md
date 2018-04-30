@@ -21,20 +21,12 @@ Here is an example of loading GoogLeNet:
 ```js
 var modelUrl = 'models/bvlc_googlenet/model.onnx';
 
-// Initialize the Onnx model
-var model = new tf.OnnxModel(modelUrl);
-```
+// Initialize the tf.model
+var model = new tf.onnx.loadModel(modelUrl);
 
-This is how you load Squeezenet directly from Github:
-
-```js
-// The model is served entirely from Github
-var GITHUB_CDN = 'https://rawgit.com/';
-
-var modelUrl = GITHUB_CDN + 'DeepScale/SqueezeNet/master/SqueezeNet_v1.1/model.onnx';
-
-// Initialize the Onnx model
-var model = new tf.OnnxModel(modelUrl);
+// Now use tf.model
+const pixels = tf.fromPixels(img);
+const predictions = model.predict(pixels);
 ```
 
 ### Run Demos
