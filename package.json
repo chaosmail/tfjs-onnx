@@ -1,6 +1,6 @@
 {
   "name": "tfjs-onnx",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Run pretrained Onnx models in Tensorflow.js",
   "main": "dist/node/index.js",
   "types": "dist/node/index.d.ts",
