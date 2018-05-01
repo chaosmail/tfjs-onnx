@@ -4,28 +4,47 @@ import {ConcatenateLayerConfig} from '@tensorflow/tfjs-layers/dist/layers/merge'
 import {onnx} from 'onnx-proto';
 
 import {OnnxNode} from '../node';
-import {getNamedAttrs, parseAttrOrDefault} from '../util';
+import {getNamedAttrs, parseAttrOrDefault, parseOnnxAxis} from '../util';
 
 export interface ConcatNodeConfig {
   axis?: onnx.AttributeProto;
 }
 
 export class Concat extends OnnxNode {
-  static parseAxis(axis: number) {
-    // TODO apply only for shape.length === 4
-    return axis == 1 ? 3 : axis;
-  }
-
   getTfjsLayerConfig(node: onnx.INodeProto): ConcatenateLayerConfig {
     const conf = getNamedAttrs(node.attribute) as ConcatNodeConfig;
     const axis = parseAttrOrDefault(conf.axis, 0) as number;
+    const inShape = this.model.blobShapes[node.input[0]];
+
     return {
-      axis: Concat.parseAxis(axis)
+      axis: parseOnnxAxis(axis, inShape)
     }
   }
 
   getTfjsLayer(node: onnx.INodeProto): Layer {
     const conf = this.getTfjsConfig(node) as ConcatenateLayerConfig;
     return tf.layers.concatenate(conf)
+  }
+}
+
+export class Add extends OnnxNode {
+  getTfjsLayerConfig(node: onnx.INodeProto) {
+    return {};
+  }
+
+  getTfjsLayer(node: onnx.INodeProto): Layer {
+    const conf = this.getTfjsConfig(node);
+    return tf.layers.add(conf)
+  }
+}
+
+export class Mul extends OnnxNode {
+  getTfjsLayerConfig(node: onnx.INodeProto) {
+    return {};
+  }
+
+  getTfjsLayer(node: onnx.INodeProto): Layer {
+    const conf = this.getTfjsConfig(node);
+    return tf.layers.multiply(conf)
   }
 }

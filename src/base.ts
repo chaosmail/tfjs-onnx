@@ -6,8 +6,8 @@ import {onnx} from 'onnx-proto';
 import {Elu, HardSigmoid, Relu, Sigmoid, Softplus, Softsign, Tanh} from './layers/activations'
 import {Softmax} from './layers/advanced_activations';
 import {Conv} from './layers/convolution'
-import {Dense, Dropout} from './layers/core';
-import {Concat} from './layers/merge';
+import {Dense, Dropout, Flatten, Reshape} from './layers/core';
+import {Add, Concat, Mul} from './layers/merge';
 import {AveragePool, GlobalAveragePool, GlobalMaxPool, MaxPool} from './layers/pooling';
 import {OnnxNode} from './node';
 import * as util from './util';
@@ -17,22 +17,26 @@ type NodeFactory = {
 };
 
 const nodeFactory: NodeFactory = {
+  'Add': Add,
+  'AveragePool': AveragePool,
+  'Concat': Concat,
   'Conv': Conv,
-  'Relu': Relu,
-  'Tanh': Tanh,
-  'Sigmoid': Sigmoid,
+  'Dropout': Dropout,
   'Elu': Elu,
+  'FC': Dense,
+  'Flatten': Flatten,
+  'GlobalAveragePool': GlobalAveragePool,
+  'GlobalMaxPool': GlobalMaxPool,
+  'HardSigmoid': HardSigmoid,
+  'MaxPool': MaxPool,
+  'Mul': Mul,
+  'Relu': Relu,
+  'Reshape': Reshape,
+  'Sigmoid': Sigmoid,
+  'Softmax': Softmax,
   'Softplus': Softplus,
   'Softsign': Softsign,
-  'HardSigmoid': HardSigmoid,
-  'FC': Dense,
-  'MaxPool': MaxPool,
-  'GlobalMaxPool': GlobalMaxPool,
-  'AveragePool': AveragePool,
-  'GlobalAveragePool': GlobalAveragePool,
-  'Concat': Concat,
-  'Dropout': Dropout,
-  'Softmax': Softmax,
+  'Tanh': Tanh,
 };
 
 export async function load(modelUrl: string): Promise<Model> {

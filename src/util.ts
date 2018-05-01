@@ -52,6 +52,17 @@ function handleFetchErrors(response: Response) {
   return response;
 }
 
+export function parseOnnxAxis(axis: number, shape: number[]) {
+  // convert to channelsLast
+  return shape.length == 4 && axis == 1 ? 3 : axis;
+}
+
+export function parseOnnxShape(shape: number[]) {
+  const [b, c, w, h] = shape;
+  // convert to channelsLast
+  return shape.length == 4 ? [b, w, h, c] : shape;
+}
+
 export function parseOnnxModel(data: ArrayBuffer) {
   return onnx.ModelProto.decode(new Uint8Array(data));
 }

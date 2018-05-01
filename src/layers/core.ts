@@ -1,10 +1,10 @@
 import * as tf from '@tensorflow/tfjs';
 import {Layer} from '@tensorflow/tfjs-layers/dist/engine/topology';
-import {DenseLayerConfig, DropoutLayerConfig} from '@tensorflow/tfjs-layers/dist/layers/core';
+import {DenseLayerConfig, DropoutLayerConfig, ReshapeLayerConfig} from '@tensorflow/tfjs-layers/dist/layers/core';
 import {onnx} from 'onnx-proto';
 
 import {OnnxNode, WeightInitializer} from '../node';
-import {getNamedAttrs, parseAttrOrDefault} from '../util';
+import {getNamedAttrs, parseAttrOrDefault, parseOnnxShape} from '../util';
 
 export interface FCNodeConfig {
   axis?: onnx.AttributeProto;
@@ -49,5 +49,29 @@ export class Dropout extends OnnxNode {
   getTfjsLayer(node: onnx.INodeProto): Layer {
     const conf = this.getTfjsConfig(node) as DropoutLayerConfig;
     return tf.layers.dropout(conf);
+  }
+}
+
+export class Flatten extends OnnxNode {
+  getTfjsLayerConfig(node: onnx.INodeProto) {
+    return {};
+  }
+
+  getTfjsLayer(node: onnx.INodeProto): Layer {
+    const conf = this.getTfjsConfig(node);
+    return tf.layers.flatten(conf);
+  }
+}
+
+export class Reshape extends OnnxNode {
+  getTfjsLayerConfig(node: onnx.INodeProto): ReshapeLayerConfig {
+    const s = node.input[1];
+    const shape = this.model.blobShapes[s];
+    return {targetShape: parseOnnxShape(shape)};
+  }
+
+  getTfjsLayer(node: onnx.INodeProto): Layer {
+    const conf = this.getTfjsConfig(node) as ReshapeLayerConfig;
+    return tf.layers.reshape(conf);
   }
 }
