@@ -97,7 +97,7 @@ export function onnxTensorTypeToTfjsDtype(tensor: onnx.TensorProto): DType {
     case onnx.TensorProto.DataType.INT32:
       return DType.int32;
     case onnx.TensorProto.DataType.INT64:
-      throw new Error(`Cannot use 'int64' tensor in tfjs`);
+      throw new Error(`'Int64Array' type not suppoert in JavaScript`);
     case onnx.TensorProto.DataType.UINT8:
       throw new Error(`Cannot use 'uint8' tensor in tfjs`);
     case onnx.TensorProto.DataType.UINT16:
@@ -109,7 +109,9 @@ export function onnxTensorTypeToTfjsDtype(tensor: onnx.TensorProto): DType {
     case onnx.TensorProto.DataType.FLOAT:
       return DType.float32;
     case onnx.TensorProto.DataType.DOUBLE:
-      throw new Error(`Cannot use 'float64/double' tensor in tfjs`);
+      console.warn(`'double' type is not supported in tfjs. Converting to ${
+          DType.float32}`)
+      return DType.float32;
     case onnx.TensorProto.DataType.UNDEFINED:
     default:
       throw new Error(`Cannot parse tensor '${tensor.dataType}'`);
@@ -129,7 +131,7 @@ export function parseOnnxTensor(tensor: onnx.TensorProto): TypedArray {
     case onnx.TensorProto.DataType.FLOAT:
       return new Float32Array(getArrayBuffer(tensor.rawData));
     case onnx.TensorProto.DataType.DOUBLE:
-      throw new Error(`Cannot use 'float64' tensor in tfjs`);
+      return new Float32Array(new Float64Array(getArrayBuffer(tensor.rawData)));
     case onnx.TensorProto.DataType.UNDEFINED:
     default:
       throw new Error(`Cannot parse tensor '${tensor.dataType}'`);

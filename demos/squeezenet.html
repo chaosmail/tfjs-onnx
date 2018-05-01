@@ -29,7 +29,7 @@
     const img = await tf.onnx.util.loadImageData(imgUrl);
 
     // Load the model
-    const modelUrl = 'models/squeezenet-onnx/model.onnx'
+    const modelUrl = 'models/squeezenet/model.onnx'
     const model = await tf.onnx.loadModel(modelUrl);
     console.debug(model);
 
