@@ -1,5 +1,5 @@
 import * as tf from '@tensorflow/tfjs';
-import {Tensor} from '@tensorflow/tfjs';
+import {SymbolicTensor, Tensor} from '@tensorflow/tfjs';
 import {DType} from '@tensorflow/tfjs-core/dist/types';
 import {Layer, LayerConfig} from '@tensorflow/tfjs-layers/dist/engine/topology';
 import {Initializer} from '@tensorflow/tfjs-layers/dist/initializers';
@@ -18,12 +18,13 @@ export abstract class OnnxNode {
     const that = new this(model);
     return that;
   }
-  abstract getTfjsLayerConfig(node: onnx.INodeProto): LayerConfig;
-  abstract getTfjsLayer(node: onnx.INodeProto): Layer;
+  abstract getTfjsLayerConfig(node: onnx.INodeProto, input?: SymbolicTensor[]):
+      LayerConfig;
+  abstract getTfjsLayer(node: onnx.INodeProto, input?: SymbolicTensor[]): Layer;
 
-  getTfjsConfig(node: onnx.INodeProto): LayerConfig {
+  getTfjsConfig(node: onnx.INodeProto, input?: SymbolicTensor[]): LayerConfig {
     const commonConfig = util.getTfjsCommonConfig(node);
-    const layerConfig = this.getTfjsLayerConfig(node);
+    const layerConfig = this.getTfjsLayerConfig(node, input);
     return Object.assign({}, commonConfig, layerConfig);
   }
 }

@@ -50,7 +50,6 @@ export class OnnxModel {
   graph: onnx.IGraphProto;
   blobShapes: {[name: string]: number[]};
   blobValues: {[name: string]: Tensor};
-  layers: {[name: string]: Layer};
   blobs: {[name: string]: Tensor|SymbolicTensor};
 
   constructor(public modelUrl: string) {}
@@ -60,7 +59,6 @@ export class OnnxModel {
     this.graph = this.onnx.graph;
     this.blobShapes = util.getBlobShapes(this.graph);
     this.blobValues = util.getBlobValues(this.graph);
-    this.layers = this.getLayers(this.graph);
   }
 
   getModel() {
@@ -74,10 +72,8 @@ export class OnnxModel {
 
     for (let i = 0; i < this.graph.node.length; ++i) {
       let currNode = this.graph.node[i];
-      let inputBlobs: SymbolicTensor[] = [];
-      let currLayerName = currNode.output[0];
-      let currLayer = this.layers[currLayerName];
 
+      let inputBlobs: SymbolicTensor[] = [];
       for (let j = 0; j < currNode.input.length; ++j) {
         let inputNodeName = currNode.input[j];
         if (this.blobs.hasOwnProperty(inputNodeName)) {
@@ -85,9 +81,14 @@ export class OnnxModel {
         }
       }
 
+      let currLayer = this.getTfjsLayer(currNode, inputBlobs);
+
       if (inputBlobs.length > 0) {
-        this.blobs[currLayerName] =
-            currLayer.apply(inputBlobs) as SymbolicTensor;
+        const output = currLayer.apply(inputBlobs) as SymbolicTensor;
+
+        currNode.output.forEach((d) => {
+          this.blobs[d] = output;
+        });
       }
     }
 
@@ -109,10 +110,10 @@ export class OnnxModel {
     return util.joinArraysToObj(names, layers);
   }
 
-  getTfjsLayer(node: onnx.INodeProto): Layer {
+  getTfjsLayer(node: onnx.INodeProto, input?: SymbolicTensor[]): Layer {
     if (nodeFactory.hasOwnProperty(node.opType)) {
       const onnxNode = (<any>nodeFactory[node.opType]).from(this);
-      return onnxNode.getTfjsLayer(node);
+      return onnxNode.getTfjsLayer(node, input);
     }
     throw new Error(`'${node.opType}' is not implemented in tfjs-onnx.`);
   }

@@ -194,6 +194,10 @@ export function getInputShape(shape: number[]) {
   return [height, width, channels];
 }
 
+export function getLayerName(node: onnx.INodeProto) {
+  return node.name ? node.name : node.output[0];
+}
+
 export function onnxTensorToTfjsWeigths(tensor: onnx.TensorProto): Tensor {
   const shape = tensor.dims as number[];
   const dtype = onnxTensorTypeToTfjsDtype(tensor);

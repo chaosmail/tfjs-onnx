@@ -1,4 +1,5 @@
 import * as tf from '@tensorflow/tfjs';
+import {SymbolicTensor} from '@tensorflow/tfjs';
 import {Layer} from '@tensorflow/tfjs-layers/dist/engine/topology';
 import {ConcatenateLayerConfig} from '@tensorflow/tfjs-layers/dist/layers/merge';
 import {onnx} from 'onnx-proto';
@@ -11,18 +12,19 @@ export interface ConcatNodeConfig {
 }
 
 export class Concat extends OnnxNode {
-  getTfjsLayerConfig(node: onnx.INodeProto): ConcatenateLayerConfig {
+  getTfjsLayerConfig(node: onnx.INodeProto, input?: SymbolicTensor[]):
+      ConcatenateLayerConfig {
     const conf = getNamedAttrs(node.attribute) as ConcatNodeConfig;
     const axis = parseAttrOrDefault(conf.axis, 0) as number;
-    const inShape = this.model.blobShapes[node.input[0]];
+    const inShape = input[0].shape;
 
     return {
       axis: parseOnnxAxis(axis, inShape)
     }
   }
 
-  getTfjsLayer(node: onnx.INodeProto): Layer {
-    const conf = this.getTfjsConfig(node) as ConcatenateLayerConfig;
+  getTfjsLayer(node: onnx.INodeProto, input?: SymbolicTensor[]): Layer {
+    const conf = this.getTfjsConfig(node, input) as ConcatenateLayerConfig;
     return tf.layers.concatenate(conf)
   }
 }

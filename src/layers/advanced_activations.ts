@@ -1,4 +1,5 @@
 import * as tf from '@tensorflow/tfjs';
+import {SymbolicTensor} from '@tensorflow/tfjs';
 import {Layer} from '@tensorflow/tfjs-layers/dist/engine/topology';
 import {SoftmaxLayerConfig} from '@tensorflow/tfjs-layers/dist/layers/advanced_activations';
 import {onnx} from 'onnx-proto';
@@ -11,18 +12,19 @@ export interface SoftmaxNodeConfig {
 }
 
 export class Softmax extends OnnxNode {
-  getTfjsLayerConfig(node: onnx.INodeProto): SoftmaxLayerConfig {
+  getTfjsLayerConfig(node: onnx.INodeProto, input?: SymbolicTensor[]):
+      SoftmaxLayerConfig {
     const conf = getNamedAttrs(node.attribute) as SoftmaxNodeConfig;
     const axis = parseAttrOrDefault(conf.axis, 0) as number;
-    const inShape = this.model.blobShapes[node.input[0]];
+    const inShape = input[0].shape;
 
     return {
       axis: parseOnnxAxis(axis, inShape)
     }
   }
 
-  getTfjsLayer(node: onnx.INodeProto): Layer {
-    const conf = this.getTfjsConfig(node) as SoftmaxLayerConfig;
+  getTfjsLayer(node: onnx.INodeProto, input?: SymbolicTensor[]): Layer {
+    const conf = this.getTfjsConfig(node, input) as SoftmaxLayerConfig;
     return tf.layers.softmax(conf)
   }
 }
