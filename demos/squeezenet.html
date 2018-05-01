@@ -1,13 +1,25 @@
 <script src="../dist/browser/tfjs-onnx.js"></script>
+<script src="ILSVRC2012.js"></script>
 
-<img id="img"></img>
+<canvas id="img"></canvas>
 <div id="result"></div>
 
 <script>
-  function convertImg(img, shape) {
+  function loadImageData(img, shape) {
     const pixels = tf.fromPixels(img);
     const data = tf.image.resizeBilinear(pixels, shape);
     return data.expandDims().cast('float32');
+  }
+
+  function displayImage(data, elemId) {
+    const elem = document.getElementById(elemId);
+    const pixels = tf.squeeze(data).div(tf.scalar(255));
+    tf.toPixels(pixels, elem);
+  }
+
+  function displayLabel(label, elemId) {
+    const elem = document.getElementById(elemId);
+    elem.textContent = label;
   }
 
   (async function(){
@@ -21,20 +33,24 @@
     const model = await tf.onnx.loadModel(modelUrl);
     console.debug(model);
 
-    const predictedClass = tf.tidy(() => {
+    // Load the pixel and scale to model input
+    const data = loadImageData(img, [224, 224]);
 
-      // Load the pixel and scale to model input
-      const data = convertImg(img, [224, 224]);
-      console.log(data.print());
+    // Visualize image
+    displayImage(data, 'img');
+
+    const predictedClass = tf.tidy(() => {
 
       // Perform the forward pass
       const predictions = model.predict(data);
-      console.debug(predictions);
 
+      // Return the highest column id
       return predictions.as1D().argMax();
     });
 
+    // Output the result
     const classId = (await predictedClass.data())[0];
-    console.log(classId);
+    const className = IMAGENET_CLASSES[classId];
+    displayLabel(className, 'result');
   })();
 </script>
