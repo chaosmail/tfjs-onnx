@@ -5,6 +5,37 @@
 <div id="result"></div>
 
 <script>
+  const imgUrl = 'img/cat.jpg';
+  const modelUrl = 'models/squeezenet/model.onnx';
+
+  (async function(){
+    // Load the image
+    const imgElem = document.getElementById('img');
+    const img = await tf.onnx.util.loadImageData(imgUrl);
+
+    // Load the model
+    const model = await tf.onnx.loadModel(modelUrl);
+    console.debug(model);
+
+    // Load the pixel and scale to model input
+    const data = loadImageData(img, [224, 224]);
+
+    // Visualize image
+    displayImage(data, 'img');
+
+    // Perform the forward pass
+    // and return the prediction
+    const predictions = tf.tidy(() => model.predict(data));
+
+    // Output the result
+    const topK = await getTopKClasses(predictions, 5);
+
+    const probs = topK[0];
+    const classNames = Array.from(topK[1]).map(d => IMAGENET_CLASSES[d]);
+
+    displayLabel(probs, classNames, 'result');
+  })();
+
   function loadImageData(img, shape) {
     const pixels = tf.fromPixels(img);
     const data = tf.image.resizeBilinear(pixels, shape);
@@ -17,40 +48,36 @@
     tf.toPixels(pixels, elem);
   }
 
-  function displayLabel(label, elemId) {
+  function displayLabel(probs, labels, elemId) {
     const elem = document.getElementById(elemId);
-    elem.textContent = label;
+    const f = n => n.toLocaleString(undefined, { minimumFractionDigits: 2 });
+
+    const row = labels.map((d,i) => {
+      return labels[i] + ": " + f(probs[i] * 100) + "%";
+    })
+
+    elem.innerHTML = row.join("<br>");
   }
 
-  (async function(){
-    // Load the image
-    const imgElem = document.getElementById('img');
-    const imgUrl = 'img/cat.jpg';
-    const img = await tf.onnx.util.loadImageData(imgUrl);
+  async function getTopKClasses(logits, topK) {
 
-    // Load the model
-    const modelUrl = 'models/squeezenet/model.onnx'
-    const model = await tf.onnx.loadModel(modelUrl);
-    console.debug(model);
+    const values = await logits.data();
 
-    // Load the pixel and scale to model input
-    const data = loadImageData(img, [224, 224]);
-
-    // Visualize image
-    displayImage(data, 'img');
-
-    const predictedClass = tf.tidy(() => {
-
-      // Perform the forward pass
-      const predictions = model.predict(data);
-
-      // Return the highest column id
-      return predictions.as1D().argMax();
+    const valuesAndIndices = [];
+    for (let i = 0; i < values.length; i++) {
+      valuesAndIndices.push({value: values[i], index: i});
+    }
+    valuesAndIndices.sort((a, b) => {
+      return b.value - a.value;
     });
+    const topkValues = new Float32Array(topK);
+    const topkIndices = new Int32Array(topK);
 
-    // Output the result
-    const classId = (await predictedClass.data())[0];
-    const className = IMAGENET_CLASSES[classId];
-    displayLabel(className, 'result');
-  })();
+    for (let i = 0; i < topK; i++) {
+      topkValues[i] = valuesAndIndices[i].value;
+      topkIndices[i] = valuesAndIndices[i].index;
+    }
+
+    return [topkValues, topkIndices];
+  }
 </script>
