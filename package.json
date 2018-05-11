@@ -1,17 +1,19 @@
 {
   "name": "tfjs-onnx",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Run pretrained Onnx models in Tensorflow.js",
   "main": "dist/node/index.js",
   "types": "dist/node/index.d.ts",
   "unpkg": "dist/browser/tfjs-onnx.min.js",
   "dependencies": {
-    "onnx-proto": "^3.1.1",
-    "@tensorflow/tfjs": "^0.10.3"
+    "onnx-proto": "^3.1.1"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/chaosmail/tfjs-onnx.git"
+  },
+  "peerDependencies": {
+    "@tensorflow/tfjs": "^0.10.3"
   },
   "devDependencies": {
     "@types/jasmine": "^2.8.4",

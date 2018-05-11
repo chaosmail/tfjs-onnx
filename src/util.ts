@@ -54,13 +54,28 @@ function handleFetchErrors(response: Response) {
 
 export function parseOnnxAxis(axis: number, shape: number[]) {
   // convert to channelsLast
-  return shape.length == 4 && axis == 1 ? 3 : axis;
+  switch (shape.length) {
+    case 4:
+      return axis == 1 ? 3 : axis;
+    case 2:
+      return axis == 1 ? 0 : axis;
+    default:
+      return axis;
+  }
 }
 
 export function parseOnnxShape(shape: number[]) {
-  const [b, c, w, h] = shape;
   // convert to channelsLast
-  return shape.length == 4 ? [b, w, h, c] : shape;
+  switch (shape.length) {
+    case 4:
+      return [shape[0], shape[3], shape[2], shape[1]];
+    case 3:
+      return [shape[2], shape[1], shape[0]];
+    case 2:
+      return [shape[1], shape[0]];
+    default:
+      return shape;
+  }
 }
 
 export function parseOnnxModel(data: ArrayBuffer) {
@@ -102,13 +117,20 @@ export function parseOnnxAttr(attr: onnx.AttributeProto): any {
 export function onnxTensorTypeToTfjsDtype(tensor: onnx.TensorProto): DType {
   switch (tensor.dataType) {
     case onnx.TensorProto.DataType.INT8:
-      throw new Error(`Cannot use 'int8' tensor in tfjs`);
+      console.warn(`'Int8Array' type is not supported in tfjs. Converting to ${
+          DType.int32}`);
+      return DType.int32;
     case onnx.TensorProto.DataType.INT16:
-      throw new Error(`Cannot use 'int16' tensor in tfjs`);
+      console.warn(`'Int16Array' type is not supported in tfjs. Converting to ${
+          DType.int32}`);
+      return DType.int32;
     case onnx.TensorProto.DataType.INT32:
       return DType.int32;
     case onnx.TensorProto.DataType.INT64:
-      throw new Error(`'Int64Array' type not suppoert in JavaScript`);
+      console.warn(
+          `'Int64Array' type is not supported in JavaScript. Trying to convert to ${
+              DType.int32}`);
+      return DType.int32;
     case onnx.TensorProto.DataType.UINT8:
       throw new Error(`Cannot use 'uint8' tensor in tfjs`);
     case onnx.TensorProto.DataType.UINT16:
@@ -137,10 +159,23 @@ export function parseOnnxTensor(tensor: onnx.TensorProto): TypedArray {
       }
 
   switch (tensor.dataType) {
+    case onnx.TensorProto.DataType.INT8:
+      return new Int32Array(new Int8Array(getArrayBuffer(tensor.rawData)));
+    case onnx.TensorProto.DataType.INT16:
+      return new Int32Array(new Int16Array(getArrayBuffer(tensor.rawData)));
     case onnx.TensorProto.DataType.INT32:
-      return new Int32Array(getArrayBuffer(tensor.rawData));
+      return tensor.int32Data.length > 0 ?
+          new Int32Array(tensor.int32Data) :
+          new Int32Array(getArrayBuffer(tensor.rawData));
+    case onnx.TensorProto.DataType.INT64:
+      if (tensor.int64Data.length) {
+        return new Int32Array(tensor.int32Data);
+      }
+      throw new Error(`'Int64Array' type not suppoert in JavaScript`);
     case onnx.TensorProto.DataType.FLOAT:
-      return new Float32Array(getArrayBuffer(tensor.rawData));
+      return tensor.floatData.length > 0 ?
+          new Float32Array(tensor.floatData) :
+          new Float32Array(getArrayBuffer(tensor.rawData));
     case onnx.TensorProto.DataType.DOUBLE:
       return new Float32Array(new Float64Array(getArrayBuffer(tensor.rawData)));
     case onnx.TensorProto.DataType.UNDEFINED:
@@ -169,7 +204,7 @@ export async function loadOnnxModel(modelUrl: string):
 
 export function getBlobValues(graph: onnx.IGraphProto) {
   const blobs = graph.initializer;
-  const weights = blobs.map(onnxTensorToTfjsWeigths);
+  const weights = blobs.map(onnxTensorToTfjs);
   const names = blobs.map(d => d.name);
   return joinArraysToObj(names, weights);
 }
@@ -198,12 +233,22 @@ export function getLayerName(node: onnx.INodeProto) {
   return node.name ? node.name : node.output[0];
 }
 
-export function onnxTensorToTfjsWeigths(tensor: onnx.TensorProto): Tensor {
+export function onnxTensorToTfjs(tensor: onnx.TensorProto): Tensor {
   const shape = tensor.dims as number[];
   const dtype = onnxTensorTypeToTfjsDtype(tensor);
   const typedArray = parseOnnxTensor(tensor);
   const data = tf.tensor(typedArray, shape, dtype);
-  return shape.length == 4 ? data.transpose([3, 2, 1, 0]) : data;
+
+  switch (shape.length) {
+    case 4:
+      return data.transpose([3, 2, 1, 0]);
+    case 3:
+      return data.transpose([2, 1, 0]);
+    case 2:
+      return data.transpose([1, 0]);
+    default:
+      return data;
+  }
 }
 
 export function loadImageData(url: string): Promise<HTMLImageElement> {

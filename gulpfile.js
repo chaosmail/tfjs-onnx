@@ -21,9 +21,6 @@ function getBrowserify(tinyify) {
     entries: config.src + '/index.ts',
     standalone: config.pkgname
   })
-  //.exclude('@tensorflow/tfjs')
-  //.exclude('@tensorflow/tfjs-layers')
-  //.exclude('@tensorflow/tfjs-core')
   .plugin('tsify');
 
   return tinyify === true ? b.plugin('tinyify').bundle() : b.bundle();

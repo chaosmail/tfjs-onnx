@@ -1,13 +1,16 @@
 <script src="../dist/browser/tfjs-onnx.js"></script>
 <script src="utils.js"></script>
-<script src="ILSVRC2012.js"></script>
 
 <canvas id="img"></canvas>
 <div id="result"></div>
 
 <script>
-  const imgUrl = 'img/cat.jpg';
-  const modelUrl = 'models/squeezenet/model.onnx';
+  const imgUrl = 'img/person.jpg';
+  const modelUrl = 'models/emotion_ferplus/emotion_ferplus.onnx'
+  const labels = [
+    'neutral', 'happiness', 'surprise', 'sadness',
+    'anger', 'disgust', 'fear', 'contempt'
+  ];
 
   (async function(){
     // Load the image
@@ -19,21 +22,24 @@
     console.debug(model);
 
     // Load the pixel and scale to model input
-    const data = loadImageData(img, [224, 224]);
+    const data = rgbToGrayscale(loadImageData(img, [64, 64]));
 
     // Visualize image
     displayImage(data, 'img');
 
-    // Perform the forward pass
-    // and return the prediction
-    const predictions = tf.tidy(() => model.predict(data));
+    // Perform the forward pass and return the prediction
+    const predictions = tf.tidy(() => {
+      const logits = model.predict(onnx.getInput(data));
+      return logits.as1D().softmax();
+    });
 
     // Output the result
     const topK = await getTopKClasses(predictions, 5);
 
     const probs = topK[0];
-    const classNames = Array.from(topK[1]).map(d => IMAGENET_CLASSES[d]);
+    const classNames = Array.from(topK[1]).map(d => labels[d]);
 
     displayLabel(probs, classNames, 'result');
   })();
+
 </script>

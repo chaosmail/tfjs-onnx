@@ -3,11 +3,12 @@ import {Model, SymbolicTensor, Tensor} from '@tensorflow/tfjs';
 import {ContainerConfig, Layer} from '@tensorflow/tfjs-layers/dist/engine/topology';
 import {onnx} from 'onnx-proto';
 
+import {ConstantLayer} from './compat/core';
 import {Elu, HardSigmoid, Relu, Sigmoid, Softplus, Softsign, Tanh} from './layers/activations'
 import {Softmax} from './layers/advanced_activations';
 import {Conv} from './layers/convolution'
-import {Dense, Dropout, Flatten, Reshape} from './layers/core';
-import {Add, Concat, Mul} from './layers/merge';
+import {Constant, Dense, Dropout, Flatten, MatMul, Reshape} from './layers/core';
+import {Add, Concat, Div, Mul, Sub} from './layers/merge';
 import {AveragePool, GlobalAveragePool, GlobalMaxPool, MaxPool} from './layers/pooling';
 import {OnnxNode} from './node';
 import * as util from './util';
@@ -20,7 +21,9 @@ const nodeFactory: NodeFactory = {
   'Add': Add,
   'AveragePool': AveragePool,
   'Concat': Concat,
+  'Constant': Constant,
   'Conv': Conv,
+  'Div': Div,
   'Dropout': Dropout,
   'Elu': Elu,
   'FC': Dense,
@@ -29,6 +32,7 @@ const nodeFactory: NodeFactory = {
   'GlobalMaxPool': GlobalMaxPool,
   'HardSigmoid': HardSigmoid,
   'MaxPool': MaxPool,
+  'MatMul': MatMul,
   'Mul': Mul,
   'Relu': Relu,
   'Reshape': Reshape,
@@ -36,10 +40,11 @@ const nodeFactory: NodeFactory = {
   'Softmax': Softmax,
   'Softplus': Softplus,
   'Softsign': Softsign,
+  'Sub': Sub,
   'Tanh': Tanh,
 };
 
-export async function load(modelUrl: string): Promise<Model> {
+export async function load(modelUrl: string): Promise<[Model, OnnxModel]> {
   const model = new OnnxModel(modelUrl);
   await model.load();
   return model.getModel();
@@ -50,25 +55,39 @@ export class OnnxModel {
   graph: onnx.IGraphProto;
   blobShapes: {[name: string]: number[]};
   blobValues: {[name: string]: Tensor};
-  blobs: {[name: string]: Tensor|SymbolicTensor};
+  nodes: {[name: string]: onnx.INodeProto};
+  layers: {[name: string]: Layer} = {};
 
   constructor(public modelUrl: string) {}
 
   async load() {
     this.onnx = await util.loadOnnxModel(this.modelUrl);
     this.graph = this.onnx.graph;
+    this.nodes = this.getNodes(this.graph);
     this.blobShapes = util.getBlobShapes(this.graph);
     this.blobValues = util.getBlobValues(this.graph);
+  }
+
+  getInput(input: Tensor): Tensor[] {
+    return [input].concat(
+        Object.keys(this.layers)
+            .filter(d => this.layers[d] instanceof ConstantLayer)
+            .filter(d => this.layers[d].outboundNodes.length > 0)
+            .map(d => this.layers[d] as ConstantLayer)
+            .map(d => d.value) as Tensor[]);
   }
 
   getModel() {
     const outputNames = this.graph.output.map(d => d.name);
     const inputName = this.graph.input[this.graph.input.length - 1].name;
-    const inputConf = {shape: util.getInputShape(this.blobShapes[inputName])};
+    const inputConf = {
+      name: inputName,
+      shape: util.getInputShape(this.blobShapes[inputName])
+    };
     const input = tf.input(inputConf);
 
-    this.blobs = {};
-    this.blobs[inputName] = input;
+    const blobs: {[name: string]: Tensor|SymbolicTensor} = {};
+    blobs[inputName] = input;
 
     for (let i = 0; i < this.graph.node.length; ++i) {
       let currNode = this.graph.node[i];
@@ -76,44 +95,51 @@ export class OnnxModel {
       let inputBlobs: SymbolicTensor[] = [];
       for (let j = 0; j < currNode.input.length; ++j) {
         let inputNodeName = currNode.input[j];
-        if (this.blobs.hasOwnProperty(inputNodeName)) {
-          inputBlobs.push(this.blobs[inputNodeName] as SymbolicTensor);
+        if (blobs.hasOwnProperty(inputNodeName)) {
+          inputBlobs.push(blobs[inputNodeName] as SymbolicTensor);
         }
       }
 
-      let currLayer = this.getTfjsLayer(currNode, inputBlobs);
+      const output =
+          this.setupTfjsLayer(currNode, inputBlobs) as SymbolicTensor;
 
-      if (inputBlobs.length > 0) {
-        const output = currLayer.apply(inputBlobs) as SymbolicTensor;
-
-        currNode.output.forEach((d) => {
-          this.blobs[d] = output;
-        });
-      }
+      currNode.output.forEach((d) => {
+        blobs[d] = output;
+      });
     }
 
-    // Finally we can select the output blobs
-    const outputs = outputNames.map(d => this.blobs[d]);
+    // Select the input blobs
+    const inputs = [input].concat(
+        Object.keys(this.layers)
+            .filter(d => this.layers[d] instanceof ConstantLayer)
+            .filter(d => this.layers[d].outboundNodes.length > 0)
+            .map(d => this.nodes[d].output[0])
+            .map(d => blobs[d]) as SymbolicTensor[]);
+
+    // Select the output blobs
+    const outputs = outputNames.map(d => blobs[d]);
 
     // Create the container config
-    const config = {inputs: input, outputs: outputs, name: this.graph.name} as
+    const config = {inputs: inputs, outputs: outputs, name: this.graph.name} as
         ContainerConfig;
 
     // Create the model
-    return tf.model(config);
+    return [tf.model(config), this] as [Model, OnnxModel];
   }
 
-  getLayers(graph: onnx.IGraphProto) {
+  getNodes(graph: onnx.IGraphProto) {
     const nodes = graph.node;
-    const layers = nodes.map(d => this.getTfjsLayer(d));
-    const names = nodes.map(d => d.output[0]);
-    return util.joinArraysToObj(names, layers);
+    const names = nodes.map(util.getLayerName);
+    return util.joinArraysToObj(names, nodes);
   }
 
-  getTfjsLayer(node: onnx.INodeProto, input?: SymbolicTensor[]): Layer {
+  setupTfjsLayer(node: onnx.INodeProto, input?: SymbolicTensor[]):
+      SymbolicTensor|SymbolicTensor[] {
     if (nodeFactory.hasOwnProperty(node.opType)) {
       const onnxNode = (<any>nodeFactory[node.opType]).from(this);
-      return onnxNode.getTfjsLayer(node, input);
+      const [layer, output] = onnxNode.setup(node, input);
+      this.layers[layer.name] = layer;
+      return output;
     }
     throw new Error(`'${node.opType}' is not implemented in tfjs-onnx.`);
   }

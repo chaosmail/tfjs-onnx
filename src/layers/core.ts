@@ -1,10 +1,37 @@
 import * as tf from '@tensorflow/tfjs';
+import {SymbolicTensor, Tensor} from '@tensorflow/tfjs';
 import {Layer} from '@tensorflow/tfjs-layers/dist/engine/topology';
 import {DenseLayerConfig, DropoutLayerConfig, ReshapeLayerConfig} from '@tensorflow/tfjs-layers/dist/layers/core';
 import {onnx} from 'onnx-proto';
 
+import {ConstantLayer, ConstantLayerConfig, MatMulLayer, ReshapeLayer} from '../compat/core';
 import {OnnxNode, WeightInitializer} from '../node';
-import {getNamedAttrs, parseAttrOrDefault, parseOnnxShape} from '../util';
+import {getNamedAttrs, onnxTensorToTfjs, parseAttrOrDefault, parseOnnxAttr, parseOnnxShape} from '../util';
+
+export interface ConstantNodeConfig {
+  value?: onnx.AttributeProto;
+}
+
+export class Constant extends OnnxNode {
+  static getConstantAttr(node: onnx.INodeProto) {
+    const conf = getNamedAttrs(node.attribute) as ConstantNodeConfig;
+    const value = parseOnnxAttr(conf.value) as onnx.TensorProto;
+    return onnxTensorToTfjs(value) as Tensor;
+  }
+
+  getTfjsLayerConfig(node: onnx.INodeProto): ConstantLayerConfig {
+    const value = Constant.getConstantAttr(node);
+
+    return {
+      value: value.expandDims(0), inputShape: value.shape
+    }
+  }
+
+  getTfjsLayer(node: onnx.INodeProto): Layer {
+    const conf = this.getTfjsConfig(node) as ConstantLayerConfig;
+    return new ConstantLayer(conf);
+  }
+}
 
 export interface FCNodeConfig {
   axis?: onnx.AttributeProto;
@@ -53,25 +80,54 @@ export class Dropout extends OnnxNode {
 }
 
 export class Flatten extends OnnxNode {
-  getTfjsLayerConfig(node: onnx.INodeProto) {
-    return {};
-  }
-
   getTfjsLayer(node: onnx.INodeProto): Layer {
     const conf = this.getTfjsConfig(node);
     return tf.layers.flatten(conf);
   }
 }
 
+export interface ReshapeNodeConfig {
+  shape?: onnx.AttributeProto;
+}
+
 export class Reshape extends OnnxNode {
-  getTfjsLayerConfig(node: onnx.INodeProto): ReshapeLayerConfig {
-    const s = node.input[1];
-    const shape = this.model.blobShapes[s];
-    return {targetShape: parseOnnxShape(shape)};
+  isSimplifiable(input?: SymbolicTensor[]) {
+    if (input.length == 1 && input[0] !== undefined &&
+        input[0].sourceLayer instanceof ConstantLayer) {
+      return true;
+    }
+    return false;
   }
 
+  getTfjsLayerConfig(node: onnx.INodeProto, input?: SymbolicTensor[]):
+      ReshapeLayerConfig {
+    const conf = getNamedAttrs(node.attribute) as ReshapeNodeConfig;
+    const value = parseOnnxAttr(conf.shape);
+    // Add batch dimension
+    const shape = [1].concat(parseOnnxShape(value));
+    return {targetShape: shape};
+  }
+
+  getTfjsLayer(node: onnx.INodeProto, input?: SymbolicTensor[]): Layer {
+    const conf = this.getTfjsConfig(node, input) as ReshapeLayerConfig;
+
+    if (this.isSimplifiable(input)) {
+      const contsNode = this.model.nodes[node.input[0]];
+      const constValue = Constant.getConstantAttr(contsNode);
+      // Remove batch dimension for direct transformation
+      const shape = conf.targetShape.slice(1);
+      const value = constValue.reshape(shape).expandDims(0);
+      const constConf = {name: conf.name, value: value, inputShape: shape};
+      return new ConstantLayer(constConf);
+    }
+
+    return new ReshapeLayer(conf);
+  }
+}
+
+export class MatMul extends OnnxNode {
   getTfjsLayer(node: onnx.INodeProto): Layer {
-    const conf = this.getTfjsConfig(node) as ReshapeLayerConfig;
-    return tf.layers.reshape(conf);
+    const conf = this.getTfjsConfig(node);
+    return new MatMulLayer(conf);
   }
 }
