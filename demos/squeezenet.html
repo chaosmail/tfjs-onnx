@@ -24,8 +24,7 @@
     // Visualize image
     displayImage(data, 'img');
 
-    // Perform the forward pass
-    // and return the prediction
+    // Perform the forward pass and return the prediction
     const predictions = tf.tidy(() => model.predict(data));
 
     // Output the result

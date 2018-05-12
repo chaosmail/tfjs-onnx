@@ -1,45 +1,64 @@
 <script src="../dist/browser/tfjs-onnx.js"></script>
 <script src="utils.js"></script>
 
-<canvas id="img"></canvas>
+<video id="player" controls autoplay></video>
+
+<div>
+  <canvas id="img"></canvas>
+</div>
 <div id="result"></div>
 
 <script>
-  const imgUrl = 'img/person.jpg';
   const modelUrl = 'models/emotion_ferplus/emotion_ferplus.onnx'
+  const imgElem = document.getElementById('img');
   const labels = [
     'neutral', 'happiness', 'surprise', 'sadness',
     'anger', 'disgust', 'fear', 'contempt'
   ];
 
+  const player = document.getElementById('player');
+  // Needs to be set for tfjs
+  player.width = 224;
+  player.height = 224;
+
+  // Start the webcam
+  navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+    .then((stream) => player.srcObject = stream);
+
   (async function(){
-    // Load the image
-    const imgElem = document.getElementById('img');
-    const img = await tf.onnx.util.loadImageData(imgUrl);
 
     // Load the model
     const model = await tf.onnx.loadModel(modelUrl);
     console.debug(model);
 
-    // Load the pixel and scale to model input
-    const data = rgbToGrayscale(loadImageData(img, [64, 64]));
+    // Run prediction loop
+    async function step(timestamp) {
+      await updatePrediction();
+      window.requestAnimationFrame(step);
+    }
+    window.requestAnimationFrame(step);
 
-    // Visualize image
-    displayImage(data, 'img');
+    async function updatePrediction() {
+      // Load the pixel and scale to model input
+      const data = rgbToGrayscale(loadImageData(player, [64, 64]));
 
-    // Perform the forward pass and return the prediction
-    const predictions = tf.tidy(() => {
-      const logits = model.predict(data);
-      return logits.as1D().softmax();
-    });
+      // Visualize image
+      displayImage(data, 'img');
 
-    // Output the result
-    const topK = await getTopKClasses(predictions, 5);
+      // Perform the forward pass and return the prediction
+      const predictions = tf.tidy(() => {
+        const logits = model.predict(data);
+        return logits.as1D().softmax();
+      });
 
-    const probs = topK[0];
-    const classNames = Array.from(topK[1]).map(d => labels[d]);
+      // Output the result
+      const topK = await getTopKClasses(predictions, 5);
 
-    displayLabel(probs, classNames, 'result');
+      const probs = topK[0];
+      const classNames = Array.from(topK[1]).map(d => labels[d]);
+
+      displayLabel(probs, classNames, 'result');
+    }
   })();
 
 </script>
