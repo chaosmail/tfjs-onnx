@@ -15,7 +15,7 @@
     const img = await tf.onnx.util.loadImageData(imgUrl);
 
     // Load the model
-    const [model, onnx] = await tf.onnx.loadModel(modelUrl);
+    const model = await tf.onnx.loadModel(modelUrl);
     console.debug(model);
 
     // Load the pixel and scale to model input

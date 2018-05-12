@@ -1,6 +1,6 @@
+import {Tensor} from '@tensorflow/tfjs';
 import {onnx} from 'onnx-proto';
 
-import {Tensor} from '.';
 import {parseTensor} from './onnx_util';
 
 export function normalizeArrayToObj<T>(

@@ -11,18 +11,19 @@ Run and finetune pretrained Onnx models in the browser with GPU support via the 
 You can use this as standalone es5 bundle like this:
 
 ```html
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@0.10.3"></script>
 <script src="https://unpkg.com/tfjs-onnx"></script>
 ```
 
 Then, loading model is a simple as referencing the path to the `model.onnx` file.
 
-Here is an example of loading GoogLeNet:
+Here is an example of loading SqueezeNet:
 
 ```js
-var modelUrl = 'models/bvlc_googlenet/model.onnx';
+var modelUrl = 'models/squeezenet/model.onnx';
 
 // Initialize the tf.model
-var model = new tf.onnx.loadModel(modelUrl);
+var model = new onnx.loadModel(modelUrl);
 
 // Now use tf.model
 const pixels = tf.fromPixels(img);

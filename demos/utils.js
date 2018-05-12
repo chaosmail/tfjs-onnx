@@ -21,12 +21,13 @@ function displayLabel(probs, labels, elemId) {
   elem.innerHTML = row.join("<br>");
 }
 
+// TODO port back to tfjs
 function rgbToGrayscale(input) {
   // @src https://github.com/tensorflow/tensorflow/blob/r1.8/tensorflow/python/ops/image_ops_impl.py#L1255
   const rgbWeights = tf.tensor1d([0.2989, 0.5870, 0.1140]);
   const floatInput = input.cast('float32');
-  const grayImage = tf.mul(floatInput, rgbWeights).mean(-1);
-  return grayImage.expandDims(3);
+  const grayImage = floatInput.mul(rgbWeights).sum(-1);
+  return grayImage.expandDims(input.shape.length - 1);
 }
 
 async function getTopKClasses(logits, topK) {

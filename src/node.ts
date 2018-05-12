@@ -5,9 +5,9 @@ import {InputLayer, Layer, LayerConfig} from '@tensorflow/tfjs-layers/dist/engin
 import {Initializer} from '@tensorflow/tfjs-layers/dist/initializers';
 import {onnx} from 'onnx-proto';
 
-import {OnnxModel} from './base';
 import {ConstantCompat} from './compat/core';
 import {getCommonConfig} from './layer_util';
+import {OnnxModel} from './model';
 
 export type StaticThis<T> = {
   new (model: OnnxModel): T
