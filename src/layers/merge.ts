@@ -4,7 +4,7 @@ import {Layer} from '@tensorflow/tfjs-layers/dist/engine/topology';
 import {ConcatenateLayerConfig} from '@tensorflow/tfjs-layers/dist/layers/merge';
 import {onnx} from 'onnx-proto';
 
-import {AddLayer, DivLayer, MulLayer, SubLayer} from '../compat/merge';
+import {DivCompat, SubCompat} from '../compat/merge';
 import {OnnxNode} from '../node';
 import {parseAttrOrDefault, parseAxis} from '../onnx_util';
 import {getNamedAttrs} from '../util';
@@ -34,27 +34,27 @@ export class Concat extends OnnxNode {
 export class Add extends OnnxNode {
   getTfjsLayer(node: onnx.INodeProto): Layer {
     const conf = this.getTfjsConfig(node);
-    return new AddLayer(conf);
+    return tf.layers.add(conf);
   }
 }
 
 export class Sub extends OnnxNode {
   getTfjsLayer(node: onnx.INodeProto): Layer {
     const conf = this.getTfjsConfig(node);
-    return new SubLayer(conf);
+    return new SubCompat(conf);
   }
 }
 
 export class Mul extends OnnxNode {
   getTfjsLayer(node: onnx.INodeProto): Layer {
     const conf = this.getTfjsConfig(node);
-    return new MulLayer(conf);
+    return tf.layers.multiply(conf);
   }
 }
 
 export class Div extends OnnxNode {
   getTfjsLayer(node: onnx.INodeProto): Layer {
     const conf = this.getTfjsConfig(node);
-    return new DivLayer(conf);
+    return new DivCompat(conf);
   }
 }

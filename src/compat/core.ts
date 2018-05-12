@@ -2,16 +2,13 @@ import {Shape} from '@tensorflow/tfjs';
 import {Tensor} from '@tensorflow/tfjs-core/dist';
 import {DType, Rank} from '@tensorflow/tfjs-core/dist/types';
 import {InputLayer, Layer, LayerConfig} from '@tensorflow/tfjs-layers/dist/engine/topology';
-import {Reshape, ReshapeLayerConfig} from '@tensorflow/tfjs-layers/dist/layers/core';
-import * as generic_utils from '@tensorflow/tfjs-layers/dist/utils/generic_utils';
-
 
 export interface ConstantLayerConfig extends LayerConfig {
   value: Tensor, sparse?: boolean, inputShape?: number[]
 }
 
-export class ConstantLayer extends InputLayer {
-  static readonly className = 'ConstantLayer';
+export class ConstantCompat extends InputLayer {
+  static readonly className = 'ConstantCompat';
   public value: Tensor;
 
   constructor(config: ConstantLayerConfig) {
@@ -30,42 +27,13 @@ export class ConstantLayer extends InputLayer {
   }
 
   getClassName(): string {
-    return ConstantLayer.className;
+    return ConstantCompat.className;
   }
 }
 
-export class ReshapeLayer extends Reshape {
-  static className = 'ReshapeLayer';
-  private reTargetShape: Shape;
-
-  constructor(config: ReshapeLayerConfig) {
-    super(config);
-    this.reTargetShape = config.targetShape;
-
-    // Make sure that all unknown dimensions are represented as `null`.
-    for (let i = 0; i < this.reTargetShape.length; ++i) {
-      if (this.reIsUnknown(this.reTargetShape[i])) {
-        this.reTargetShape[i] = null;
-      }
-    }
-  }
-
-  private reIsUnknown(dim: number): boolean {
-    return dim < 0 || dim == null;
-  }
-
-  computeOutputShape(inputShape: Shape): Shape {
-    return this.reTargetShape;
-  }
-
-  call(inputs: Tensor|Tensor[]): Tensor|Tensor[] {
-    const input = generic_utils.getExactlyOneTensor(inputs);
-    return input.reshape(this.reTargetShape);
-  }
-}
-
-export class MatMulLayer extends Layer {
-  static className = 'MatMulLayer';
+// TODO port back to tfjs
+export class MatMulCompat extends Layer {
+  static className = 'MatMulCompat';
   constructor(config?: LayerConfig) {
     super(config as LayerConfig);
   }
@@ -89,6 +57,6 @@ export class MatMulLayer extends Layer {
   }
 
   getClassName(): string {
-    return MatMulLayer.className;
+    return MatMulCompat.className;
   }
 }

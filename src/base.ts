@@ -3,7 +3,7 @@ import {Model, SymbolicTensor, Tensor} from '@tensorflow/tfjs';
 import {ContainerConfig, Layer} from '@tensorflow/tfjs-layers/dist/engine/topology';
 import {onnx} from 'onnx-proto';
 
-import {ConstantLayer} from './compat/core';
+import {ConstantCompat} from './compat/core';
 import * as layer_util from './layer_util';
 import {Elu, HardSigmoid, Relu, Sigmoid, Softplus, Softsign, Tanh} from './layers/activations'
 import {Softmax} from './layers/advanced_activations';
@@ -133,13 +133,12 @@ export class OnnxModel {
 
   private getConstantInputNames(): string[] {
     return Object.keys(this.layers)
-        .filter(d => this.layers[d] instanceof ConstantLayer)
-        .filter(d => this.layers[d].outboundNodes.length > 0);
+        .filter(d => layer_util.isConstantLayer(this.layers[d]));
   }
 
   private getConstantInputs(): Tensor[] {
     return this.getConstantInputNames()
-               .map(d => this.layers[d] as ConstantLayer)
+               .map(d => this.layers[d] as ConstantCompat)
                .map(d => d.value) as Tensor[];
   }
 

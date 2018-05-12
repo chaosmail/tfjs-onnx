@@ -4,7 +4,7 @@ import {Layer} from '@tensorflow/tfjs-layers/dist/engine/topology';
 import {DenseLayerConfig, DropoutLayerConfig, ReshapeLayerConfig} from '@tensorflow/tfjs-layers/dist/layers/core';
 import {onnx} from 'onnx-proto';
 
-import {ConstantLayer, ConstantLayerConfig, MatMulLayer, ReshapeLayer} from '../compat/core';
+import {ConstantCompat, ConstantLayerConfig, MatMulCompat} from '../compat/core';
 import {OnnxNode, WeightInitializer} from '../node';
 import {parseAttr, parseAttrOrDefault, parseShape, parseTensor} from '../onnx_util';
 import {getNamedAttrs} from '../util';
@@ -30,7 +30,7 @@ export class Constant extends OnnxNode {
 
   getTfjsLayer(node: onnx.INodeProto): Layer {
     const conf = this.getTfjsConfig(node) as ConstantLayerConfig;
-    return new ConstantLayer(conf);
+    return new ConstantCompat(conf);
   }
 }
 
@@ -94,7 +94,7 @@ export interface ReshapeNodeConfig {
 export class Reshape extends OnnxNode {
   isSimplifiable(input?: SymbolicTensor[]) {
     if (input.length == 1 && input[0] !== undefined &&
-        input[0].sourceLayer instanceof ConstantLayer) {
+        input[0].sourceLayer instanceof ConstantCompat) {
       return true;
     }
     return false;
@@ -104,31 +104,34 @@ export class Reshape extends OnnxNode {
       ReshapeLayerConfig {
     const conf = getNamedAttrs(node.attribute) as ReshapeNodeConfig;
     const value = parseAttr(conf.shape);
-    // Add batch dimension
-    const shape = [1].concat(parseShape(value));
-    return {targetShape: shape};
+    const shape = parseShape(value);
+    // Add batch dimension if required
+    const targetShape =
+        input[0].shape[0] == null ? shape : [null].concat(shape);
+    return {targetShape: targetShape};
   }
 
   getTfjsLayer(node: onnx.INodeProto, input?: SymbolicTensor[]): Layer {
     const conf = this.getTfjsConfig(node, input) as ReshapeLayerConfig;
 
+    // TODO not only reshape can take constant inputs
+    // check if this can be generalized to all layers
     if (this.isSimplifiable(input)) {
       const contsNode = this.model.nodes[node.input[0]];
       const constValue = Constant.getConstantAttr(contsNode);
-      // Remove batch dimension for direct transformation
-      const shape = conf.targetShape.slice(1);
+      const shape = conf.targetShape;
       const value = constValue.reshape(shape).expandDims(0);
       const constConf = {name: conf.name, value: value, inputShape: shape};
-      return new ConstantLayer(constConf);
+      return new ConstantCompat(constConf);
     }
 
-    return new ReshapeLayer(conf);
+    return tf.layers.reshape(conf);
   }
 }
 
 export class MatMul extends OnnxNode {
   getTfjsLayer(node: onnx.INodeProto): Layer {
     const conf = this.getTfjsConfig(node);
-    return new MatMulLayer(conf);
+    return new MatMulCompat(conf);
   }
 }

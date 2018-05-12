@@ -6,7 +6,7 @@ import {Initializer} from '@tensorflow/tfjs-layers/dist/initializers';
 import {onnx} from 'onnx-proto';
 
 import {OnnxModel} from './base';
-import {ConstantLayer} from './compat/core';
+import {ConstantCompat} from './compat/core';
 import {getCommonConfig} from './layer_util';
 
 export type StaticThis<T> = {
@@ -40,7 +40,7 @@ export abstract class OnnxNode {
       [Layer, SymbolicTensor]|SymbolicTensor[] {
     const layer = this.getTfjsLayer(node, input);
 
-    if (layer instanceof ConstantLayer || layer instanceof InputLayer) {
+    if (layer instanceof ConstantCompat || layer instanceof InputLayer) {
       const outputs = layer.inboundNodes[0].outputTensors;
       return [layer, outputs[0]];
     }
