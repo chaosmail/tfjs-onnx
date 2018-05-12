@@ -39,7 +39,7 @@ export class MatMulCompat extends Layer {
   }
 
   computeOutputShape(inputShape: Shape[]): Shape {
-    // TODO add checks
+    // TODO add checks for computing the output shape
     const aShape = inputShape[0];
     const bShape = inputShape[1];
     return aShape.slice(0, 1).concat(bShape[1], aShape[2]);
@@ -53,6 +53,7 @@ export class MatMulCompat extends Layer {
     const a = inputs[0].squeeze([0]) as Tensor<Rank.R2>;
     const b = inputs[1].squeeze([0]) as Tensor<Rank.R2>;
 
+    // both tensors are transposed, hence we change the order
     return b.matMul(a).expandDims(0);
   }
 
