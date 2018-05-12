@@ -1,0 +1,26 @@
+sudo: required
+language: node_js
+dist: trusty
+
+node_js:
+  - '8.9.1'
+
+addons:
+  chrome: stable
+  firefox: stable
+
+services:
+  - docker
+
+before_install:
+  # We need a display for the browsers
+  - export DISPLAY=:99.0
+  - sh -e /etc/init.d/xvfb start
+  - sleep 3
+
+install:
+  - npm install
+
+script:
+  - npm run build
+#  - npm run test-e2e-travis

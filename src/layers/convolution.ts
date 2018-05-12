@@ -1,12 +1,11 @@
 import * as tf from '@tensorflow/tfjs';
 import {SymbolicTensor, Tensor} from '@tensorflow/tfjs';
-import {PaddingMode} from '@tensorflow/tfjs-layers/dist/common';
 import {Layer} from '@tensorflow/tfjs-layers/dist/engine/topology';
 import {ConvLayerConfig} from '@tensorflow/tfjs-layers/dist/layers/convolutional';
 import {onnx} from 'onnx-proto';
 
 import {OnnxNode, WeightInitializer} from '../node';
-import {getNamedAttrs, parseAttrOrDefault} from '../util';
+import {getConvDim, getNamedAttrs, getTfjsPadding, parseAttrOrDefault} from '../util';
 
 import {Constant} from './core';
 
@@ -22,17 +21,6 @@ export interface ConvNodeConfig {
 }
 
 export class Conv extends OnnxNode {
-  static getTfjsPadding(pads: number[], auto_pad: AutoPad): PaddingMode {
-    const checkAutoPad = auto_pad !== null && auto_pad != 'VALID';
-    const checkPads = pads !== null && pads.length > 0 && pads[0] != 0;
-    return checkAutoPad || checkPads ? 'same' : 'valid'
-  }
-
-  static getConvDim(node: onnx.INodeProto): number {
-    const conf = getNamedAttrs(node.attribute) as ConvNodeConfig;
-    return parseAttrOrDefault(conf.kernel_shape, []).length || 2;
-  }
-
   getTensorAttr(name: string): Tensor {
     if (this.model.blobValues !== undefined &&
         this.model.blobValues.hasOwnProperty(name)) {
@@ -60,7 +48,7 @@ export class Conv extends OnnxNode {
     const strides = parseAttrOrDefault(conf.strides, 1) as number[];
     const pads = parseAttrOrDefault(conf.pads, null);
     const autoPad = parseAttrOrDefault(conf.auto_pad, null);
-    const padding = Conv.getTfjsPadding(pads, autoPad);
+    const padding = getTfjsPadding(pads, autoPad);
     const dilationRate = parseAttrOrDefault(conf.dilations, 1);
 
     const kernel = this.getTensorAttr(node.input[1]);
@@ -77,7 +65,7 @@ export class Conv extends OnnxNode {
   }
 
   getTfjsLayer(node: onnx.INodeProto): Layer {
-    const dim = Conv.getConvDim(node);
+    const dim = getConvDim(node);
     const conf = this.getTfjsConfig(node) as ConvLayerConfig;
     return dim == 1 ? tf.layers.conv1d(conf) : tf.layers.conv2d(conf);
   }

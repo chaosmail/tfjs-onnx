@@ -1,10 +1,9 @@
+import {Shape} from '@tensorflow/tfjs';
 import {Tensor} from '@tensorflow/tfjs-core/dist';
 import {DType, Rank} from '@tensorflow/tfjs-core/dist/types';
 import {InputLayer, Layer, LayerConfig} from '@tensorflow/tfjs-layers/dist/engine/topology';
 import {Reshape, ReshapeLayerConfig} from '@tensorflow/tfjs-layers/dist/layers/core';
 import * as generic_utils from '@tensorflow/tfjs-layers/dist/utils/generic_utils';
-
-import {Shape} from '..';
 
 
 export interface ConstantLayerConfig extends LayerConfig {

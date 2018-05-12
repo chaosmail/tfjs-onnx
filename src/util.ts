@@ -1,8 +1,11 @@
 import * as tf from '@tensorflow/tfjs';
 import {Tensor} from '@tensorflow/tfjs';
 import {DType, TypedArray} from '@tensorflow/tfjs-core/dist/types';
+import {PaddingMode} from '@tensorflow/tfjs-layers/dist/common';
 import {LayerConfig} from '@tensorflow/tfjs-layers/dist/engine/topology';
 import {onnx} from 'onnx-proto';
+
+import {AutoPad, ConvNodeConfig} from './layers/convolution';
 
 export function normalizeArrayToObj<T>(
     array: T[], indexKey: keyof T): {[key: string]: T} {
@@ -249,6 +252,17 @@ export function onnxTensorToTfjs(tensor: onnx.TensorProto): Tensor {
     default:
       return data;
   }
+}
+
+export function getTfjsPadding(pads: number[], auto_pad: AutoPad): PaddingMode {
+  const checkAutoPad = auto_pad !== null && auto_pad != 'VALID';
+  const checkPads = pads !== null && pads.length > 0 && pads[0] != 0;
+  return checkAutoPad || checkPads ? 'same' : 'valid'
+}
+
+export function getConvDim(node: onnx.INodeProto): number {
+  const conf = getNamedAttrs(node.attribute) as ConvNodeConfig;
+  return parseAttrOrDefault(conf.kernel_shape, []).length || 2;
 }
 
 export function loadImageData(url: string): Promise<HTMLImageElement> {
