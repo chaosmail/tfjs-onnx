@@ -3,30 +3,58 @@ import {Tensor} from '@tensorflow/tfjs';
 import {DType, TypedArray} from '@tensorflow/tfjs-core/dist/types';
 import {onnx} from 'onnx-proto';
 
-export function parseAxis(axis: number, shape: number[]) {
+export function parseAxis(axis: number, shape: number[]): number {
   // convert to channelsLast
+  // -----------------------------------------------------
+  // onnx shape:  batchSize, inChannels, inHeight, inWidth
+  // tfjs shape:  batchSize, inHeight, inWidth, inChannels
   switch (shape.length) {
     case 4:
-      return axis == 1 ? 3 : axis;
-    case 2:
-      return axis == 1 ? 0 : axis;
+      return axis == 1 ? 3 : axis == 3 || axis == -1 ? 1 : axis;
+    case 3:
+      return axis == 0 ? 2 : axis == 2 || axis == -1 ? 0 : axis;
     default:
       return axis;
   }
 }
 
-export function parseShape(shape: number[]) {
+export function parseShape(shape: number[]): number[] {
   // convert to channelsLast
+  // -----------------------------------------------------
+  // onnx shape:  batchSize, inChannels, inHeight, inWidth
+  // tfjs shape:  batchSize, inHeight, inWidth, inChannels
   switch (shape.length) {
     case 4:
-      return [shape[0], shape[3], shape[2], shape[1]];
+      return [shape[0], shape[2], shape[3], shape[1]];
     case 3:
-      return [shape[2], shape[1], shape[0]];
-    case 2:
-      return [shape[1], shape[0]];
+      return [shape[1], shape[2], shape[0]];
     default:
       return shape;
   }
+}
+
+export function parseTensor(
+    tensor: onnx.TensorProto, transpose = true): Tensor {
+  const shape = tensor.dims as number[];
+  const dtype = parseTensorDtype(tensor);
+  const typedArray = parseTensorData(tensor);
+  const data = tf.tensor(typedArray, shape, dtype);
+
+  // convert to channelsLast
+  // -----------------------------------------------------
+  // onnx shape:  batchSize, inChannels, inHeight, inWidth
+  // tfjs shape:  batchSize, inHeight, inWidth, inChannels
+  if (transpose) {
+    switch (shape.length) {
+      case 4:
+        return data.transpose([0, 2, 3, 1]);
+      case 3:
+        return data.transpose([1, 2, 0]);
+      default:
+        return data;
+    }
+  }
+  return data;
 }
 
 export function parseAttrOrDefault(attr: onnx.AttributeProto, def?: any): any {
@@ -127,23 +155,5 @@ export function parseTensorData(tensor: onnx.TensorProto): TypedArray {
     case onnx.TensorProto.DataType.UNDEFINED:
     default:
       throw new Error(`Cannot parse tensor '${tensor.dataType}'`);
-  }
-}
-
-export function parseTensor(tensor: onnx.TensorProto): Tensor {
-  const shape = tensor.dims as number[];
-  const dtype = parseTensorDtype(tensor);
-  const typedArray = parseTensorData(tensor);
-  const data = tf.tensor(typedArray, shape, dtype);
-
-  switch (shape.length) {
-    case 4:
-      return data.transpose([3, 2, 1, 0]);
-    case 3:
-      return data.transpose([2, 1, 0]);
-    case 2:
-      return data.transpose([1, 0]);
-    default:
-      return data;
   }
 }

@@ -53,9 +53,11 @@ export class Conv extends OnnxNode {
     const padding = getTfjsPadding(pads, autoPad);
     const dilationRate = parseAttrOrDefault(conf.dilations, 1);
 
-    const kernel = this.getTensorAttr(node.input[1]);
+    // tfjs shape: numChannels, inHeight, inWidth, inChannels
+    // conv shape: inHeight, inWidth, inChannels, numChannels
+    const kernel = this.getTensorAttr(node.input[1]).transpose([2, 1, 3, 0]);
     const bias = node.input[2] ? this.getTensorAttr(node.input[2]) : null;
-    const filters = kernel.shape[kernel.shape.length - 1];
+    const filters = kernel.shape[3];
 
     return {
       kernelSize: kernelSize, strides: strides, padding: padding,

@@ -1,6 +1,6 @@
 import * as tf from '@tensorflow/tfjs';
 import {SymbolicTensor, Tensor} from '@tensorflow/tfjs';
-import {Layer} from '@tensorflow/tfjs-layers/dist/engine/topology';
+import {Layer, LayerConfig} from '@tensorflow/tfjs-layers/dist/engine/topology';
 import {DenseLayerConfig, DropoutLayerConfig, ReshapeLayerConfig} from '@tensorflow/tfjs-layers/dist/layers/core';
 import {onnx} from 'onnx-proto';
 
@@ -14,10 +14,10 @@ export interface ConstantNodeConfig {
 }
 
 export class Constant extends OnnxNode {
-  static getConstantAttr(node: onnx.INodeProto) {
+  static getConstantAttr(node: onnx.INodeProto, transpose = true) {
     const conf = getNamedAttrs(node.attribute) as ConstantNodeConfig;
     const value = parseAttr(conf.value) as onnx.TensorProto;
-    return parseTensor(value) as Tensor;
+    return parseTensor(value, transpose) as Tensor;
   }
 
   getTfjsLayerConfig(node: onnx.INodeProto): ConstantLayerConfig {
@@ -100,6 +100,16 @@ export class Reshape extends OnnxNode {
     return false;
   }
 
+  getConstantLayer(
+      node: onnx.INodeProto, origConf: LayerConfig, shape: number[]) {
+    // the layer is reshaped, therefore it contains no batch dimensions
+    const constValue =
+        Constant.getConstantAttr(this.model.nodes[node.input[0]], false);
+    const value = constValue.reshape(shape).expandDims(0);
+    const conf = {name: origConf.name, value: value, inputShape: shape};
+    return new ConstantCompat(conf);
+  }
+
   getTfjsLayerConfig(node: onnx.INodeProto, input?: SymbolicTensor[]):
       ReshapeLayerConfig {
     const conf = getNamedAttrs(node.attribute) as ReshapeNodeConfig;
@@ -117,12 +127,7 @@ export class Reshape extends OnnxNode {
     // TODO not only reshape can take constant inputs
     // check if this can be generalized to all layers
     if (this.isSimplifiable(input)) {
-      const contsNode = this.model.nodes[node.input[0]];
-      const constValue = Constant.getConstantAttr(contsNode);
-      const shape = conf.targetShape;
-      const value = constValue.reshape(shape).expandDims(0);
-      const constConf = {name: conf.name, value: value, inputShape: shape};
-      return new ConstantCompat(constConf);
+      return this.getConstantLayer(node, conf, conf.targetShape);
     }
 
     return tf.layers.reshape(conf);

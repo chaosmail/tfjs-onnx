@@ -68,7 +68,7 @@ export async function loadOnnxModel(modelUrl: string):
 export function getBlobValues(graph: onnx.IGraphProto):
     {[name: string]: Tensor} {
   const blobs = graph.initializer;
-  const weights = blobs.map(parseTensor);
+  const weights = blobs.map((d: onnx.TensorProto) => parseTensor(d));
   const names = blobs.map(getLayerName);
   return joinArraysToObj(names, weights);
 }

@@ -1,41 +1,65 @@
 <script src="../dist/browser/tfjs-onnx.js"></script>
 <script src="utils.js"></script>
+<script src="draw.js"></script>
 
-<canvas id="img"></canvas>
-<div id="result"></div>
+<style>
+  #draw {
+    border: 1px dotted black;
+    cursor: crosshair;
+  }
+</style>
+
+<div>
+  <canvas width="240" height="240" id="draw"></canvas>
+</div>
+<div>
+  <button onclick="draw.clean()">Reset</button>
+</div>
+<div>
+  <canvas id="img"></canvas>
+  <div id="result"></div>
+</div>
+
 
 <script>
   const imgUrl = 'img/mnist_5.png';
   const modelUrl = 'models/mnist/mnist.onnx';
+  const drawElem = document.getElementById('draw');
+
+  const draw = makeCanvasDrawable(drawElem);
+  draw.start();
 
   (async function(){
-    // Load the image
-    const imgElem = document.getElementById('img');
-    const img = await tf.onnx.util.loadImageData(imgUrl);
-
     // Load the model
     const model = await tf.onnx.loadModel(modelUrl);
     console.debug(model);
 
-    // Load the pixel and scale to model input
-    const data = rgbToGrayscale(loadImageData(img, [28, 28]));
+    drawElem.addEventListener('mouseup', async () => {
 
-    // Visualize image
-    displayImage(data, 'img');
+      // Load the pixel and scale to model input
+      const pixels = loadImageData(drawElem, [28, 28]);
+      const data = rgbToGrayscale(pixels);
 
-    // Perform the forward pass and return the prediction
-    const predictions = tf.tidy(() => {
-      const logits = model.predict(data);
-      return logits.as1D().softmax();
-    });
+      // Visualize image
+      displayImage(data, 'img');
 
-    // Output the result
-    const topK = await getTopKClasses(predictions, 5);
+      // Perform the forward pass and return the prediction
+      const predictions = tf.tidy(() => {
+        const logits = model.predict(data);
+        return logits.as1D().softmax();
+      });
 
-    const probs = topK[0];
-    const classNames = Array.from(topK[1]);
+      console.log(predictions.dataSync());
 
-    displayLabel(probs, classNames, 'result');
+      // Output the result
+      const topK = await getTopKClasses(predictions, 5);
+
+      const probs = topK[0];
+      const classNames = Array.from(topK[1]);
+
+      displayLabel(probs, classNames, 'result');
+
+    }, false );
   })();
 
 </script>
