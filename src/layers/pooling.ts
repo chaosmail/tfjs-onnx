@@ -3,8 +3,10 @@ import {Layer} from '@tensorflow/tfjs-layers/dist/engine/topology';
 import {Pooling1DLayerConfig, Pooling2DLayerConfig} from '@tensorflow/tfjs-layers/dist/layers/pooling';
 import {onnx} from 'onnx-proto';
 
+import {getTfjsPadding} from '../layer_util';
 import {OnnxNode} from '../node';
-import {getNamedAttrs, getTfjsPadding, parseAttrOrDefault} from '../util';
+import {parseAttrOrDefault} from '../onnx_util';
+import {getNamedAttrs} from '../util';
 
 export type PoolingLayerConfig = Pooling1DLayerConfig|Pooling2DLayerConfig;
 

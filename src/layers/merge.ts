@@ -6,7 +6,8 @@ import {onnx} from 'onnx-proto';
 
 import {AddLayer, DivLayer, MulLayer, SubLayer} from '../compat/merge';
 import {OnnxNode} from '../node';
-import {getNamedAttrs, parseAttrOrDefault, parseOnnxAxis} from '../util';
+import {parseAttrOrDefault, parseAxis} from '../onnx_util';
+import {getNamedAttrs} from '../util';
 
 export interface ConcatNodeConfig {
   axis?: onnx.AttributeProto;
@@ -20,7 +21,7 @@ export class Concat extends OnnxNode {
     const inShape = input[0].shape;
 
     return {
-      axis: parseOnnxAxis(axis, inShape)
+      axis: parseAxis(axis, inShape)
     }
   }
 

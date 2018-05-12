@@ -7,7 +7,7 @@ import {onnx} from 'onnx-proto';
 
 import {OnnxModel} from './base';
 import {ConstantLayer} from './compat/core';
-import * as util from './util';
+import {getCommonConfig} from './layer_util';
 
 export type StaticThis<T> = {
   new (model: OnnxModel): T
@@ -27,7 +27,7 @@ export abstract class OnnxNode {
   }
 
   getTfjsConfig(node: onnx.INodeProto, input?: SymbolicTensor[]): LayerConfig {
-    const commonConfig = util.getTfjsCommonConfig(node);
+    const commonConfig = getCommonConfig(node);
     const layerConfig = this.getTfjsLayerConfig(node, input);
     return Object.assign({}, commonConfig, layerConfig);
   }

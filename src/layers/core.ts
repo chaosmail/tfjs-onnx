@@ -6,7 +6,8 @@ import {onnx} from 'onnx-proto';
 
 import {ConstantLayer, ConstantLayerConfig, MatMulLayer, ReshapeLayer} from '../compat/core';
 import {OnnxNode, WeightInitializer} from '../node';
-import {getNamedAttrs, onnxTensorToTfjs, parseAttrOrDefault, parseOnnxAttr, parseOnnxShape} from '../util';
+import {parseAttr, parseAttrOrDefault, parseShape, parseTensor} from '../onnx_util';
+import {getNamedAttrs} from '../util';
 
 export interface ConstantNodeConfig {
   value?: onnx.AttributeProto;
@@ -15,8 +16,8 @@ export interface ConstantNodeConfig {
 export class Constant extends OnnxNode {
   static getConstantAttr(node: onnx.INodeProto) {
     const conf = getNamedAttrs(node.attribute) as ConstantNodeConfig;
-    const value = parseOnnxAttr(conf.value) as onnx.TensorProto;
-    return onnxTensorToTfjs(value) as Tensor;
+    const value = parseAttr(conf.value) as onnx.TensorProto;
+    return parseTensor(value) as Tensor;
   }
 
   getTfjsLayerConfig(node: onnx.INodeProto): ConstantLayerConfig {
@@ -102,9 +103,9 @@ export class Reshape extends OnnxNode {
   getTfjsLayerConfig(node: onnx.INodeProto, input?: SymbolicTensor[]):
       ReshapeLayerConfig {
     const conf = getNamedAttrs(node.attribute) as ReshapeNodeConfig;
-    const value = parseOnnxAttr(conf.shape);
+    const value = parseAttr(conf.shape);
     // Add batch dimension
-    const shape = [1].concat(parseOnnxShape(value));
+    const shape = [1].concat(parseShape(value));
     return {targetShape: shape};
   }
 

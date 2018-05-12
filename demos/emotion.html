@@ -29,7 +29,7 @@
 
     // Perform the forward pass and return the prediction
     const predictions = tf.tidy(() => {
-      const logits = model.predict(onnx.getInput(data));
+      const logits = model.predict(onnx.getAllInputs(data));
       return logits.as1D().softmax();
     });
 

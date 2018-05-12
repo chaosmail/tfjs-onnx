@@ -4,8 +4,10 @@ import {Layer} from '@tensorflow/tfjs-layers/dist/engine/topology';
 import {ConvLayerConfig} from '@tensorflow/tfjs-layers/dist/layers/convolutional';
 import {onnx} from 'onnx-proto';
 
+import {getConvDim, getTfjsPadding} from '../layer_util';
 import {OnnxNode, WeightInitializer} from '../node';
-import {getConvDim, getNamedAttrs, getTfjsPadding, parseAttrOrDefault} from '../util';
+import {parseAttrOrDefault} from '../onnx_util';
+import {getNamedAttrs} from '../util';
 
 import {Constant} from './core';
 
