@@ -1,7 +1,7 @@
 <script src="../dist/browser/tfjs-onnx.js"></script>
 <script src="utils.js"></script>
 
-<video id="player" controls autoplay></video>
+<video id="player" preload autoplay loop muted></video>
 
 <div>
   <canvas id="img"></canvas>
@@ -18,15 +18,14 @@
 
   const player = document.getElementById('player');
   // Needs to be set for tfjs
-  player.width = 224;
-  player.height = 224;
+  player.width = 320;
+  player.height = 240;
 
   // Start the webcam
   navigator.mediaDevices.getUserMedia({ video: true, audio: false })
     .then((stream) => player.srcObject = stream);
 
   (async function(){
-
     // Load the model
     const model = await tf.onnx.loadModel(modelUrl);
     console.debug(model);
@@ -40,7 +39,9 @@
 
     async function updatePrediction() {
       // Load the pixel and scale to model input
-      const data = rgbToGrayscale(loadImageData(player, [64, 64]));
+      const data = getImageData(player, {
+        shape: [64, 64], crop: true, gray: true
+      });
 
       // Visualize image
       displayImage(data, 'img');

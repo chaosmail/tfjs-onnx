@@ -20,7 +20,6 @@
 </div>
 <div id="result"></div>
 
-
 <script>
   const imgUrl = 'img/mnist_5.png';
   const modelUrl = 'models/mnist/mnist.onnx';
@@ -37,8 +36,9 @@
     drawElem.addEventListener('mouseup', async () => {
 
       // Load the pixel and scale to model input
-      const pixels = loadImageData(drawElem, [28, 28]);
-      const data = rgbToGrayscale(pixels);
+      const data = getImageData(drawElem, {
+        shape: [28, 28], gray: true
+      });
 
       // Visualize image
       displayImage(data, 'img');

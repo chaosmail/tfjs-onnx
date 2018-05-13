@@ -8,10 +8,10 @@
 <script>
   const imgUrl = 'img/cat.jpg';
   const modelUrl = 'models/squeezenet/model.onnx';
+  const imgElem = document.getElementById('img');
 
   (async function(){
     // Load the image
-    const imgElem = document.getElementById('img');
     const img = await tf.onnx.util.loadImageData(imgUrl);
 
     // Load the model
@@ -19,7 +19,7 @@
     console.debug(model);
 
     // Load the pixel and scale to model input
-    const data = loadImageData(img, [224, 224]);
+    const data = getImageData(img, {shape: [224, 224]});
 
     // Visualize image
     displayImage(data, 'img');
