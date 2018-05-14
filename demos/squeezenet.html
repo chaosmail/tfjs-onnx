@@ -1,4 +1,5 @@
 <script src="../dist/browser/tfjs-onnx.js"></script>
+<script src="utils.js"></script>
 <script src="ILSVRC2012.js"></script>
 
 <canvas id="img"></canvas>
@@ -7,10 +8,10 @@
 <script>
   const imgUrl = 'img/cat.jpg';
   const modelUrl = 'models/squeezenet/model.onnx';
+  const imgElem = document.getElementById('img');
 
   (async function(){
     // Load the image
-    const imgElem = document.getElementById('img');
     const img = await tf.onnx.util.loadImageData(imgUrl);
 
     // Load the model
@@ -18,13 +19,12 @@
     console.debug(model);
 
     // Load the pixel and scale to model input
-    const data = loadImageData(img, [224, 224]);
+    const data = getImageData(img, {shape: [224, 224]});
 
     // Visualize image
     displayImage(data, 'img');
 
-    // Perform the forward pass
-    // and return the prediction
+    // Perform the forward pass and return the prediction
     const predictions = tf.tidy(() => model.predict(data));
 
     // Output the result
@@ -35,49 +35,4 @@
 
     displayLabel(probs, classNames, 'result');
   })();
-
-  function loadImageData(img, shape) {
-    const pixels = tf.fromPixels(img);
-    const data = tf.image.resizeBilinear(pixels, shape);
-    return data.expandDims().cast('float32');
-  }
-
-  function displayImage(data, elemId) {
-    const elem = document.getElementById(elemId);
-    const pixels = tf.squeeze(data).div(tf.scalar(255));
-    tf.toPixels(pixels, elem);
-  }
-
-  function displayLabel(probs, labels, elemId) {
-    const elem = document.getElementById(elemId);
-    const f = n => n.toLocaleString(undefined, { minimumFractionDigits: 2 });
-
-    const row = labels.map((d,i) => {
-      return labels[i] + ": " + f(probs[i] * 100) + "%";
-    })
-
-    elem.innerHTML = row.join("<br>");
-  }
-
-  async function getTopKClasses(logits, topK) {
-
-    const values = await logits.data();
-
-    const valuesAndIndices = [];
-    for (let i = 0; i < values.length; i++) {
-      valuesAndIndices.push({value: values[i], index: i});
-    }
-    valuesAndIndices.sort((a, b) => {
-      return b.value - a.value;
-    });
-    const topkValues = new Float32Array(topK);
-    const topkIndices = new Int32Array(topK);
-
-    for (let i = 0; i < topK; i++) {
-      topkValues[i] = valuesAndIndices[i].value;
-      topkIndices[i] = valuesAndIndices[i].index;
-    }
-
-    return [topkValues, topkIndices];
-  }
 </script>

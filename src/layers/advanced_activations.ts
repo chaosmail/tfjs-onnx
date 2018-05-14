@@ -5,7 +5,8 @@ import {SoftmaxLayerConfig} from '@tensorflow/tfjs-layers/dist/layers/advanced_a
 import {onnx} from 'onnx-proto';
 
 import {OnnxNode} from '../node';
-import {getNamedAttrs, parseAttrOrDefault, parseOnnxAxis} from '../util';
+import {parseAttrOrDefault, parseAxis} from '../onnx_util';
+import {getNamedAttrs} from '../util';
 
 export interface SoftmaxNodeConfig {
   axis?: onnx.AttributeProto;
@@ -19,7 +20,7 @@ export class Softmax extends OnnxNode {
     const inShape = input[0].shape;
 
     return {
-      axis: parseOnnxAxis(axis, inShape)
+      axis: parseAxis(axis, inShape)
     }
   }
 

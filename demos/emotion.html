@@ -1,0 +1,65 @@
+<script src="../dist/browser/tfjs-onnx.js"></script>
+<script src="utils.js"></script>
+
+<video id="player" preload autoplay loop muted></video>
+
+<div>
+  <canvas id="img"></canvas>
+</div>
+<div id="result"></div>
+
+<script>
+  const modelUrl = 'models/emotion_ferplus/emotion_ferplus.onnx'
+  const imgElem = document.getElementById('img');
+  const labels = [
+    'neutral', 'happiness', 'surprise', 'sadness',
+    'anger', 'disgust', 'fear', 'contempt'
+  ];
+
+  const player = document.getElementById('player');
+  // Needs to be set for tfjs
+  player.width = 320;
+  player.height = 240;
+
+  // Start the webcam
+  navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+    .then((stream) => player.srcObject = stream);
+
+  (async function(){
+    // Load the model
+    const model = await tf.onnx.loadModel(modelUrl);
+    console.debug(model);
+
+    // Run prediction loop
+    async function step(timestamp) {
+      await updatePrediction();
+      window.requestAnimationFrame(step);
+    }
+    window.requestAnimationFrame(step);
+
+    async function updatePrediction() {
+      // Load the pixel and scale to model input
+      const data = getImageData(player, {
+        shape: [64, 64], crop: true, gray: true
+      });
+
+      // Visualize image
+      displayImage(data, 'img');
+
+      // Perform the forward pass and return the prediction
+      const predictions = tf.tidy(() => {
+        const logits = model.predict(data);
+        return logits.as1D().softmax();
+      });
+
+      // Output the result
+      const topK = await getTopKClasses(predictions, 5);
+
+      const probs = topK[0];
+      const classNames = Array.from(topK[1]).map(d => labels[d]);
+
+      displayLabel(probs, classNames, 'result');
+    }
+  })();
+
+</script>

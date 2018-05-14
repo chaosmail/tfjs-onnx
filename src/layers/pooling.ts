@@ -3,10 +3,10 @@ import {Layer} from '@tensorflow/tfjs-layers/dist/engine/topology';
 import {Pooling1DLayerConfig, Pooling2DLayerConfig} from '@tensorflow/tfjs-layers/dist/layers/pooling';
 import {onnx} from 'onnx-proto';
 
+import {getTfjsPadding} from '../layer_util';
 import {OnnxNode} from '../node';
-import {getNamedAttrs, parseAttrOrDefault} from '../util';
-
-import {Conv} from './convolution';
+import {parseAttrOrDefault} from '../onnx_util';
+import {getNamedAttrs} from '../util';
 
 export type PoolingLayerConfig = Pooling1DLayerConfig|Pooling2DLayerConfig;
 
@@ -24,7 +24,7 @@ export abstract class Pool extends OnnxNode {
     const strides = parseAttrOrDefault(conf.strides, 1) as number;
     const pads = parseAttrOrDefault(conf.pads, null);
     const autoPad = parseAttrOrDefault(conf.auto_pad, null);
-    const padding = Conv.getTfjsPadding(pads, autoPad);
+    const padding = getTfjsPadding(pads, autoPad);
 
     return {
       poolSize: poolSize, strides: strides, padding: padding,

@@ -1,12 +1,13 @@
 import * as tf from '@tensorflow/tfjs';
 import {SymbolicTensor, Tensor} from '@tensorflow/tfjs';
 import {DType} from '@tensorflow/tfjs-core/dist/types';
-import {Layer, LayerConfig} from '@tensorflow/tfjs-layers/dist/engine/topology';
+import {InputLayer, Layer, LayerConfig} from '@tensorflow/tfjs-layers/dist/engine/topology';
 import {Initializer} from '@tensorflow/tfjs-layers/dist/initializers';
 import {onnx} from 'onnx-proto';
 
-import {OnnxModel} from './base';
-import * as util from './util';
+import {ConstantCompat} from './compat/core';
+import {getCommonConfig} from './layer_util';
+import {OnnxModel} from './model';
 
 export type StaticThis<T> = {
   new (model: OnnxModel): T
@@ -18,14 +19,33 @@ export abstract class OnnxNode {
     const that = new this(model);
     return that;
   }
-  abstract getTfjsLayerConfig(node: onnx.INodeProto, input?: SymbolicTensor[]):
-      LayerConfig;
   abstract getTfjsLayer(node: onnx.INodeProto, input?: SymbolicTensor[]): Layer;
 
+  getTfjsLayerConfig(node: onnx.INodeProto, input?: SymbolicTensor[]):
+      LayerConfig {
+    return {};
+  }
+
   getTfjsConfig(node: onnx.INodeProto, input?: SymbolicTensor[]): LayerConfig {
-    const commonConfig = util.getTfjsCommonConfig(node);
+    const commonConfig = getCommonConfig(node);
     const layerConfig = this.getTfjsLayerConfig(node, input);
     return Object.assign({}, commonConfig, layerConfig);
+  }
+
+  prepareInput(input?: SymbolicTensor[]): SymbolicTensor[] {
+    return input;
+  }
+
+  setup(node: onnx.INodeProto, input?: SymbolicTensor[]):
+      [Layer, SymbolicTensor]|SymbolicTensor[] {
+    const layer = this.getTfjsLayer(node, input);
+
+    if (layer instanceof ConstantCompat || layer instanceof InputLayer) {
+      const outputs = layer.inboundNodes[0].outputTensors;
+      return [layer, outputs[0]];
+    }
+
+    return [layer, layer.apply(this.prepareInput(input)) as SymbolicTensor];
   }
 }
 
