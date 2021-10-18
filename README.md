@@ -38,7 +38,7 @@ To run the demo, use the following:
 npm run build
 
 # Start a webserver
-npm run start
+npm run serve
 ```
 
 Now navigate to http://localhost:8080/demos.
