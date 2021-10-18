@@ -52,6 +52,12 @@ export async function loadModel(modelUrl: string): Promise<ModelCompat> {
   return model.getModel();
 }
 
+export async function loadModelFromBuffer(modelBuffer: ArrayBuffer): Promise<ModelCompat> {
+  const model = new OnnxModel('');
+  await model.loadFromBuffer(modelBuffer);
+  return model.getModel();
+}
+
 export class ModelCompat extends Model {
   constructor(config: ContainerConfig, public onnx: OnnxModel) {
     super(config);
@@ -82,7 +88,15 @@ export class OnnxModel {
     this.blobValues = util.getBlobValues(this.graph);
   }
 
-  getAllInputs(input: Tensor|Tensor[]): Tensor[] {
+  async loadFromBuffer(model: ArrayBuffer) {
+    this.onnx = await util.parseOnnxModel(model);
+    this.graph = this.onnx.graph;
+    this.nodes = util.getNodes(this.graph);
+    this.blobShapes = util.getBlobShapes(this.graph);
+    this.blobValues = util.getBlobValues(this.graph);
+  }
+
+  getAllInputs(input: Tensor | Tensor[]): Tensor[] {
     return [].concat(input, this.getConstantInputs());
   }
 
