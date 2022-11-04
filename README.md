@@ -15,7 +15,7 @@ You can use this as standalone es5 bundle like this:
 <script src="https://unpkg.com/tfjs-onnx"></script>
 ```
 
-Then, loading model is a simple as referencing the path to the `model.onnx` file.
+Then, loading a model is as simple as referencing the path to the `model.onnx` file.
 
 Here is an example of loading SqueezeNet:
 
